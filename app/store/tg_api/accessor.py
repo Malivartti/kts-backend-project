@@ -53,16 +53,16 @@ class TgApiAccessor(BaseAccessor):
             if not data.get("ok"):
                 logging.error(
                     "Failed to get updates: %s", data.get("description")
-                    )
+                )
                 return []
 
             updates = []
             for update in data.get("result", []):
                 if "message" in update and "text" in update["message"]:
-                    updates.append(dict_to_update(update))    
+                    updates.append(dict_to_update(update))
                 self.offset = max(self.offset or 0, update["update_id"] + 1)
             return updates
-    
+
     async def send_message(self, reply: Reply) -> None:
         url = self._build_query("sendMessage", reply_to_dict(reply))
         async with self.session.get(url) as response:

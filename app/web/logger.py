@@ -11,8 +11,10 @@ def setup_logging(_: "Application") -> None:
     logger.setLevel(logging.INFO)
 
     log_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        'logs'
+        os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ),
+        "logs",
     )
     file_handler = logging.FileHandler(log_path)
     file_handler.setLevel(logging.INFO)
@@ -20,9 +22,7 @@ def setup_logging(_: "Application") -> None:
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
 
-    formatter = logging.Formatter(
-        '%(asctime)s - %(levelname)s - %(message)s'
-    )
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(formatter)
     console_handler.setFormatter(formatter)
 
@@ -31,4 +31,4 @@ def setup_logging(_: "Application") -> None:
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
-    logging.info('Starting app')
+    logging.info("Starting app")

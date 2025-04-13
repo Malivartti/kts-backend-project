@@ -29,7 +29,7 @@ class Message:
 class Update:
     update_id: int
     message: Message
-    
+
 
 @dataclass
 class Reply:
