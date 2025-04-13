@@ -5,6 +5,7 @@ from aiohttp.web import (
 from app.store.database.database import Database
 from app.store.store import Store, setup_store
 from app.web.config import Config, setup_config
+from app.web.logger import setup_logging
 
 from .routes import setup_routes
 
@@ -21,6 +22,7 @@ app = Application()
 
 
 def setup_app(config_path: str) -> Application:
+    setup_logging(app)
     setup_config(app, config_path)
     setup_routes(app)
     setup_store(app)
