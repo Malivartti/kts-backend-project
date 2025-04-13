@@ -17,8 +17,14 @@ class DatabaseConfig:
 
 
 @dataclass
+class BotConfig:
+    token: str
+
+
+@dataclass
 class Config:
     database: DatabaseConfig = None
+    bot: BotConfig = None
 
 
 def setup_config(app: "Application", config_path: str):
@@ -27,4 +33,7 @@ def setup_config(app: "Application", config_path: str):
 
     app.config = Config(
         database=DatabaseConfig(**raw_config["database"]),
+        bot=BotConfig(
+            token=raw_config["bot"]["token"],
+        ),
     )
