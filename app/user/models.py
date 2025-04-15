@@ -1,10 +1,7 @@
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    Integer,
-    String,
-)
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.store.database.sqlalchemy_base import BaseModel
 
@@ -12,8 +9,10 @@ from app.store.database.sqlalchemy_base import BaseModel
 class User(BaseModel):
     __tablename__ = "User"
 
-    id = Column(Integer, primary_key=True)
-    username = Column(String, nullable=False)
-    password = Column(String, nullable=False)
-    is_admin = Column(Boolean, nullable=False, server_default="false")
-    last_login = Column(DateTime, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String, nullable=False)
+    password: Mapped[str] = mapped_column(String, nullable=False)
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false"
+    )
+    last_login: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
