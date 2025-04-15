@@ -20,10 +20,12 @@ class QuestionType(enum.Enum):
     multi = "multi"
 
 
-class Theme:
+class Theme(BaseModel):
     __tablename__ = "Theme"
     id = Column(Integer, primary_key=True)
     title = Column(String, nullable=False)
+
+    questions = relationship("Question", back_populates="theme")
 
 
 class Question(BaseModel):
@@ -42,7 +44,7 @@ class Question(BaseModel):
         onupdate=func.now(),
     )
 
-    user = relationship("User", back_populates="questions")
+    theme = relationship("Theme", back_populates="questions")
     answers = relationship("Answer", back_populates="question")
 
 

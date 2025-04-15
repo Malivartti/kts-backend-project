@@ -22,9 +22,15 @@ class BotConfig:
 
 
 @dataclass
+class SessionConfig:
+    key: str
+
+
+@dataclass
 class Config:
     database: DatabaseConfig = None
     bot: BotConfig = None
+    session: SessionConfig = None
 
 
 def setup_config(app: "Application", config_path: str):
@@ -36,4 +42,5 @@ def setup_config(app: "Application", config_path: str):
         bot=BotConfig(
             token=raw_config["bot"]["token"],
         ),
+        session=SessionConfig(key=raw_config["session"]["key"]),
     )

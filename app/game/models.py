@@ -31,7 +31,16 @@ class Game(BaseModel):
 
     id = Column(Integer, primary_key=True)
     tg_group_id = Column(Integer, nullable=False)
-    winner_id = Column(Integer, ForeignKey("GamePlayer.id"), nullable=True)
+    winner_id = Column(
+        Integer,
+        ForeignKey(
+            "GamePlayer.id",
+            use_alter=True,
+            name="fk_game_winner_id",
+            deferrable=True,
+        ),
+        nullable=True,
+    )
     status = Column(
         Enum(GameStatus), nullable=False, server_default=GameStatus.active.value
     )
@@ -43,9 +52,9 @@ class Game(BaseModel):
         onupdate=func.now(),
     )
 
-    winner = relationship("GamePlayer")
+    winner = relationship("GamePlayer", foreign_keys=[winner_id])
     game_rounds = relationship("GameRound", back_populates="game")
-    players = relationship("GamePlayer", back_populates="game")
+    players = relationship("GamePlayer", foreign_keys="[GamePlayer.game_id]")
 
 
 class GamePlayer(BaseModel):
@@ -60,8 +69,6 @@ class GamePlayer(BaseModel):
     correct_answers = Column(Integer, nullable=False, server_default="0")
     incorrect_answers = Column(Integer, nullable=False, server_default="0")
     in_game = Column(Boolean, nullable=False, server_default="true")
-
-    game = relationship("Game", back_populates="players")
 
 
 class GameRound(BaseModel):
@@ -81,5 +88,5 @@ class GameRound(BaseModel):
     )
 
     game = relationship("Game", back_populates="game_rounds")
-    question = relationship("Question", back_populates="game_rounds")
-    player = relationship("GamePlayer", back_populates="game_rounds")
+    question = relationship("Question")
+    player = relationship("GamePlayer")
