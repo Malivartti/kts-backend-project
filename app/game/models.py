@@ -1,55 +1,64 @@
-import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
+from app.base.types import BaseEnum
 from app.quiz.models import Question
 from app.store.database.sqlalchemy_base import BaseModel
 
 
-class GameStatus(enum.Enum):
-    active = "active"
-    finished = "finished"
+class GameStatus(BaseEnum):
+    ACTIVE = "ACTIVE"
+    FINISHED = "FINISHED"
 
 
-class TrackColor(enum.Enum):
-    red = "red"
-    yellow = "yellow"
-    green = "green"
+class TrackColor(BaseEnum):
+    RED = "RED"
+    YELLOW = "YELLOW"
+    GREEN = "GREEN"
 
 
 class Game(BaseModel):
-    __tablename__ = "Game"
+    __tablename__ = "game"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     tg_group_id: Mapped[int] = mapped_column(Integer, nullable=False)
     winner_id: Mapped[int | None] = mapped_column(
-        Integer,
+        BigInteger,
         ForeignKey(
-            "GamePlayer.id",
+            "game_player.id",
             use_alter=True,
             name="fk_game_winner_id",
             deferrable=True,
         ),
         nullable=True,
+        index=True,
     )
     status: Mapped[GameStatus] = mapped_column(
-        Enum(GameStatus), nullable=False, server_default=GameStatus.active.value
+        Enum(GameStatus), nullable=False, server_default=GameStatus.ACTIVE.value
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
     )
 
     winner: Mapped["GamePlayer | None"] = relationship(
-        "GamePlayer", foreign_keys=[winner_id]
+        "GamePlayer", foreign_keys=[winner_id], lazy="noload"
     )
     game_rounds: Mapped[list["GameRound"]] = relationship(
         "GameRound", back_populates="game"
@@ -60,11 +69,14 @@ class Game(BaseModel):
 
 
 class GamePlayer(BaseModel):
-    __tablename__ = "GamePlayer"
+    __tablename__ = "game_player"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     game_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("Game.id"), nullable=False
+        BigInteger,
+        ForeignKey("game.id"),
+        nullable=False,
+        index=True,
     )
     tg_id: Mapped[int] = mapped_column(Integer, nullable=False)
     first_name: Mapped[str] = mapped_column(String, nullable=False)
@@ -82,24 +94,33 @@ class GamePlayer(BaseModel):
 
 
 class GameRound(BaseModel):
-    __tablename__ = "GameRound"
+    __tablename__ = "game_round"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     game_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("Game.id"), nullable=False
+        BigInteger,
+        ForeignKey("game.id"),
+        nullable=False,
+        index=True,
     )
     question_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("Question.id"), nullable=False
+        Integer,
+        ForeignKey("question.id"),
+        nullable=False,
+        index=True,
     )
     player_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("GamePlayer.id"), nullable=False
+        BigInteger,
+        ForeignKey("game_player.id"),
+        nullable=False,
+        index=True,
     )
     answer: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),

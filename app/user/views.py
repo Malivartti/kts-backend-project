@@ -1,4 +1,4 @@
-from aiohttp.web_exceptions import HTTPBadRequest, HTTPForbidden
+from aiohttp.web_exceptions import HTTPConflict, HTTPForbidden
 from aiohttp_apispec import docs, request_schema, response_schema
 from aiohttp_session import get_session, new_session
 
@@ -7,6 +7,13 @@ from app.web.app import View
 from app.web.mixins import SESSION_COOKIE_NAME, AuthRequiredMixin
 from app.web.schemes import OkResponseSchema
 from app.web.utils import json_response
+
+
+async def login_user_and_set_session(request, user):
+    session_key = await request.app.store.session.create_session(user.id)
+    session = await new_session(request)
+    session[SESSION_COOKIE_NAME] = session_key
+    return json_response(data={"id": user.id, "username": user.username})
 
 
 class UserRegisterView(View):
@@ -21,18 +28,13 @@ class UserRegisterView(View):
         user_accessor = self.request.app.store.user
         existing_user = await user_accessor.get_by_username(username)
         if existing_user:
-            raise HTTPBadRequest(reason="Username already exists")
+            raise HTTPConflict(reason="Username already exists")
 
         user = await user_accessor.create_user(
             username=username, password=password
         )
-        session_key = await self.request.app.store.session.create_session(
-            user.id
-        )
-        session = await new_session(self.request)
-        session[SESSION_COOKIE_NAME] = session_key
 
-        return json_response(data={"id": user.id, "username": user.username})
+        return await login_user_and_set_session(self.request, user)
 
 
 class UserLoginView(View):
@@ -53,13 +55,7 @@ class UserLoginView(View):
         ):
             raise HTTPForbidden(reason="Invalid username or password")
 
-        session_key = await self.request.app.store.session.create_session(
-            user.id
-        )
-        session = await new_session(self.request)
-        session[SESSION_COOKIE_NAME] = session_key
-
-        return json_response(data={"id": user.id, "username": user.username})
+        return await login_user_and_set_session(self.request, user)
 
 
 class UserLogoutView(AuthRequiredMixin, View):
@@ -72,8 +68,7 @@ class UserLogoutView(AuthRequiredMixin, View):
         await self.request.app.store.session.delete_session(session_key)
 
         session = await get_session(self.request)
-        if SESSION_COOKIE_NAME in session:
-            del session[SESSION_COOKIE_NAME]
+        del session[SESSION_COOKIE_NAME]
 
         return json_response(data={"status": "ok"})
 

@@ -33,3 +33,4 @@ webargs==8.4.0
 yarl==1.9.4
 
 passlib==1.7.4
+orjson==3.10.16

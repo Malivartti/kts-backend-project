@@ -1,20 +1,20 @@
-import enum
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
+from app.base.types import BaseEnum
 from app.store.database.sqlalchemy_base import BaseModel
 
 
-class QuestionType(enum.Enum):
-    single = "single"
-    multi = "multi"
+class QuestionType(BaseEnum):
+    SINGLE = "SINGLE"
+    MULTI = "MULTI"
 
 
 class Theme(BaseModel):
-    __tablename__ = "Theme"
+    __tablename__ = "theme"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
@@ -24,24 +24,33 @@ class Theme(BaseModel):
 
 
 class Question(BaseModel):
-    __tablename__ = "Question"
+    __tablename__ = "question"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("User.id"), nullable=False
+        Integer,
+        ForeignKey("user.id"),
+        nullable=False,
+        index=True,
     )
     theme_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("Theme.id"), nullable=False
+        Integer,
+        ForeignKey("theme.id"),
+        nullable=False,
+        index=True,
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
     type: Mapped[QuestionType] = mapped_column(
         Enum(QuestionType), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
     )
 
     theme: Mapped["Theme"] = relationship("Theme", back_populates="questions")
@@ -51,19 +60,25 @@ class Question(BaseModel):
 
 
 class Answer(BaseModel):
-    __tablename__ = "Answer"
+    __tablename__ = "answer"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     question_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("Question.id"), nullable=False
+        Integer,
+        ForeignKey("question.id"),
+        nullable=False,
+        index=True,
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
     )
 
     question: Mapped["Question"] = relationship(
