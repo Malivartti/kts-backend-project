@@ -17,7 +17,8 @@ class Theme(BaseModel):
     __tablename__ = "theme"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    title: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+
     questions: Mapped[list["Question"]] = relationship(
         "Question", back_populates="theme"
     )
@@ -35,8 +36,8 @@ class Question(BaseModel):
     )
     theme_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("theme.id"),
-        nullable=False,
+        ForeignKey("theme.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
@@ -84,3 +85,30 @@ class Answer(BaseModel):
     question: Mapped["Question"] = relationship(
         "Question", back_populates="answers"
     )
+
+
+def theme_to_dict(theme: Theme) -> dict:
+    return {"id": theme.id, "title": theme.title}
+
+
+def question_to_dict(question: Question) -> dict:
+    return {
+        "id": question.id,
+        "user_id": question.user_id,
+        "theme_id": question.theme_id,
+        "title": question.title,
+        "type": question.type.value,
+        "created_at": question.created_at.isoformat(),
+        "updated_at": question.updated_at.isoformat(),
+    }
+
+
+def answer_to_dict(answer: Answer) -> dict:
+    return {
+        "id": answer.id,
+        "question_id": answer.question_id,
+        "title": answer.title,
+        "is_correct": answer.is_correct,
+        "created_at": answer.created_at.isoformat(),
+        "updated_at": answer.updated_at.isoformat(),
+    }
