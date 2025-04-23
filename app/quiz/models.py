@@ -42,7 +42,7 @@ class Question(BaseModel):
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
     type: Mapped[QuestionType] = mapped_column(
-        Enum(QuestionType), nullable=False
+        Enum(QuestionType, name="question_type"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -56,7 +56,7 @@ class Question(BaseModel):
 
     theme: Mapped["Theme"] = relationship("Theme", back_populates="questions")
     answers: Mapped[list["Answer"]] = relationship(
-        "Answer", back_populates="question"
+        "Answer", back_populates="question", passive_deletes=True
     )
 
 
@@ -66,7 +66,7 @@ class Answer(BaseModel):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     question_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("question.id"),
+        ForeignKey("question.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

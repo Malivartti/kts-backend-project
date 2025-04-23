@@ -215,11 +215,19 @@ class QuizAccessor(BaseAccessor):
             result = await session.execute(query)
             return list(result.scalars().all())
 
+    async def get_answers_by_question_id(
+        self, question_id: int
+    ) -> list[Answer]:
+        async with self.app.database.session() as session:
+            query = select(Answer).where(Answer.question_id == question_id)
+            result = await session.execute(query)
+            return list(result.scalars().all())
+
     async def get_correct_answer_by_question_id(
         self, question_id: int
-    ) -> Answer | None:
+    ) -> str | None:
         async with self.app.database.session() as session:
-            query = select(Answer.id).where(
+            query = select(Answer.title).where(
                 Answer.question_id == question_id, Answer.is_correct.is_(True)
             )
             result = await session.execute(query)

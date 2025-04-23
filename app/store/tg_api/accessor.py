@@ -5,9 +5,13 @@ from urllib.parse import urlencode
 from aiohttp.client import ClientSession
 
 from app.base.base_accessor import BaseAccessor
-from app.store.tg_api.mappers import dict_to_update, reply_to_dict
+from app.store.tg_api.mappers import (
+    dict_to_callback_update,
+    dict_to_update,
+    reply_to_dict,
+)
 
-from .dataclasses import Reply, Update
+from .dataclasses import CallbackUpdate, Reply, Update
 from .poller import Poller
 
 if typing.TYPE_CHECKING:
@@ -42,7 +46,7 @@ class TgApiAccessor(BaseAccessor):
             params = {}
         return f"{API_BASE_URL}/bot{self.token}/{method}?{urlencode(params)}"
 
-    async def poll(self) -> list[Update]:
+    async def poll(self) -> list[Update | CallbackUpdate]:
         params = {"timeout": 25}
         if self.offset:
             params["offset"] = self.offset
@@ -60,6 +64,8 @@ class TgApiAccessor(BaseAccessor):
             for update in data.get("result", []):
                 if "message" in update and "text" in update["message"]:
                     updates.append(dict_to_update(update))
+                if "callback_query" in update:
+                    updates.append(dict_to_callback_update(update))
                 self.offset = max(self.offset or 0, update["update_id"] + 1)
             return updates
 
@@ -70,5 +76,15 @@ class TgApiAccessor(BaseAccessor):
             if not data.get("ok"):
                 logging.error(
                     "Failed to send message: %s", data.get("description")
+                )
+                return
+
+    async def edit_message(self, reply: Reply) -> None:
+        url = self._build_query("editMessageText", reply_to_dict(reply))
+        async with self.session.get(url) as response:
+            data = await response.json()
+            if not data.get("ok"):
+                logging.error(
+                    "Failed to edit message: %s", data.get("description")
                 )
                 return

@@ -19,6 +19,7 @@ class DatabaseConfig:
 @dataclass
 class BotConfig:
     token: str
+    tg_name: str
 
 
 @dataclass
@@ -41,6 +42,7 @@ def setup_config(app: "Application", config_path: str):
         database=DatabaseConfig(**raw_config["database"]),
         bot=BotConfig(
             token=raw_config["bot"]["token"],
+            tg_name=raw_config["bot"]["tg_name"],
         ),
         session=SessionConfig(key=raw_config["session"]["key"]),
     )

@@ -1,3 +1,4 @@
+import random
 from datetime import datetime
 
 from sqlalchemy import (
@@ -18,6 +19,7 @@ from app.store.database.sqlalchemy_base import BaseModel
 
 
 class GameStatus(BaseEnum):
+    PREPARATION = "PREPARATION"
     ACTIVE = "ACTIVE"
     FINISHED = "FINISHED"
 
@@ -27,25 +29,23 @@ class TrackColor(BaseEnum):
     YELLOW = "YELLOW"
     GREEN = "GREEN"
 
+    @classmethod
+    def random(cls) -> "TrackColor":
+        return random.choice(list(cls))
+
 
 class Game(BaseModel):
     __tablename__ = "game"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    tg_group_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    winner_id: Mapped[int | None] = mapped_column(
-        BigInteger,
-        ForeignKey(
-            "game_player.id",
-            use_alter=True,
-            name="fk_game_winner_id",
-            deferrable=True,
-        ),
-        nullable=True,
-        index=True,
+    tg_group_id: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, index=True
     )
+
     status: Mapped[GameStatus] = mapped_column(
-        Enum(GameStatus), nullable=False, server_default=GameStatus.ACTIVE.value
+        Enum(GameStatus, name="game_status"),
+        nullable=False,
+        server_default=GameStatus.PREPARATION.value,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -56,9 +56,8 @@ class Game(BaseModel):
         server_default=func.now(),
         onupdate=func.now(),
     )
-
-    winner: Mapped["GamePlayer | None"] = relationship(
-        "GamePlayer", foreign_keys=[winner_id], lazy="noload"
+    winners: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0"
     )
     game_rounds: Mapped[list["GameRound"]] = relationship(
         "GameRound", back_populates="game"
@@ -78,10 +77,12 @@ class GamePlayer(BaseModel):
         nullable=False,
         index=True,
     )
-    tg_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    tg_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     first_name: Mapped[str] = mapped_column(String, nullable=False)
     last_name: Mapped[str | None] = mapped_column(String, nullable=True)
-    track: Mapped[TrackColor] = mapped_column(Enum(TrackColor), nullable=False)
+    track: Mapped[TrackColor] = mapped_column(
+        Enum(TrackColor, name="track_color"), nullable=False
+    )
     correct_answers: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="0"
     )
@@ -91,6 +92,7 @@ class GamePlayer(BaseModel):
     in_game: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="true"
     )
+    place: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class GameRound(BaseModel):
