@@ -1,0 +1,11 @@
+database:
+  host: postgres
+  port: 5432
+  user: sgg_admin
+  password: sgg_password
+  database: sgg
+bot:
+  token: 8041433047:AAFMFqxM4khrlmzZOkWmrn2R0lyUWRJYWcg
+  tg_name: SGG0Bot
+session:
+  key: CaY5iCkYtN7DqXdiYK1BvmGrQuaSA4Tl4bEk9my0jc0=
