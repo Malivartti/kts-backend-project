@@ -1,0 +1,97 @@
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: sgg_postgres
+    restart: always
+    ports:
+      - 1235:5432
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"] 
+      interval: 2s
+      timeout: 2s
+      retries: 6
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: sgg_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI
+    env_file:
+      - .env
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 2s
+      timeout: 2s
+      retries: 6
+
+  poller:
+    build:
+      context: ./poller
+    image: sgg_poller
+    container_name: sgg_poller
+    # restart: always
+    working_dir: /app
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  public_worker:
+    build:
+      context: ./worker
+    image: sgg_worker
+    container_name: sgg_worker
+    # restart: always
+    working_dir: /app
+    command: >
+      sh -c "
+      alembic upgrade head &&
+      python main.py
+      "
+    env_file:
+      - .env
+    ports:
+     - 8081:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+
+  # worker:
+  #   build:
+  #     context: ./worker
+  #   image: sgg_worker
+  #   restart: always
+  #   working_dir: /app
+  #   command: >
+  #     sh -c "
+  #     python main.py
+  #     "
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 3
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
