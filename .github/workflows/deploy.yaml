@@ -1,0 +1,99 @@
+name: Build, Push and Deploy
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image version'
+        required: false
+        default: 'latest'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  TAG_NAME: ${{ github.event.inputs.version || 'latest' }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Сборка и публикация образа poller
+      - name: Build and push Poller image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./poller
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository }}/poller:${{ env.TAG_NAME }}
+
+      # Сборка и публикация образа worker
+      - name: Build and push Worker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./worker
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository }}/worker:${{ env.TAG_NAME }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
+          POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          TG_BOT_TOKEN=${{ secrets.TG_BOT_TOKEN }}
+          RABBITMQ_DEFAULT_USER=${{ secrets.RABBITMQ_DEFAULT_USER }}
+          RABBITMQ_DEFAULT_PASS=${{ secrets.RABBITMQ_DEFAULT_PASS }}
+          RABBITMQ_HOST=rabbitmq
+          DOCKER_TAG=${{ env.TAG_NAME }}
+          EOF
+      
+      - name: Update docker-compose.yml
+        run: |
+          sed -i 's|image: .*poller.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/poller:${DOCKER_TAG}|g' docker-compose.yaml
+          sed -i 's|image: .*worker.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/worker:${DOCKER_TAG}|g' docker-compose.yaml
+      
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: Deploy to server
+        run: |
+          # Создаем директорию, если она не существует
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ secrets.SSH_TARGET_DIR }}"
+          
+          # Копируем docker-compose.yaml и .env файл
+          scp -o StrictHostKeyChecking=no docker-compose.yaml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_TARGET_DIR }}/
+          scp -o StrictHostKeyChecking=no .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_TARGET_DIR }}/
+          
+          # Запускаем docker-compose
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ${{ secrets.SSH_TARGET_DIR }}
+            docker compose pull
+            docker compose up -d
+          EOF
