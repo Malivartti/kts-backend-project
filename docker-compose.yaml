@@ -27,7 +27,12 @@ services:
       - .env
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-
+    command: >
+      bash -c "
+        chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie || true;
+        chmod 400 /var/lib/rabbitmq/.erlang.cookie || true;
+        rabbitmq-server
+      "
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
       interval: 2s
