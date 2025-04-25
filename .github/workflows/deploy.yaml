@@ -90,7 +90,7 @@ jobs:
           context: ./worker
           push: true
           tags: ${{ steps.meta_worker.outputs.tags }}
-
+  
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -112,6 +112,10 @@ jobs:
           else
             git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -E "^(poller|worker)/" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
           fi
+      
+      - name: Set re-run flag
+        id: rerun_check
+        run: echo "is_rerun=true" >> $GITHUB_OUTPUT
       
       - name: Create .env file
         run: |
@@ -139,12 +143,12 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       
       - name: Create Docker config directory
-        if: steps.check_code_changes.outputs.changed == 'true'
+        if: steps.check_code_changes.outputs.changed == 'true' || steps.rerun_check.outputs.is_rerun == 'true'
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/.docker"
 
       - name: Setup Docker authentication on server
-        if: steps.check_code_changes.outputs.changed == 'true'
+        if: steps.check_code_changes.outputs.changed == 'true' || steps.rerun_check.outputs.is_rerun == 'true'
         run: |
           # Создаем файл конфигурации Docker с авторизацией для GitHub Container Registry
           cat > docker_config.json << EOF
@@ -164,7 +168,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker login ${REGISTRY} -u ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}"
       
       - name: Deploy to server
-        if: steps.check_code_changes.outputs.changed == 'true'
+        if: steps.check_code_changes.outputs.changed == 'true' || steps.rerun_check.outputs.is_rerun == 'true'
         run: |
           # Создаем директорию, если она не существует
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ secrets.SSH_TARGET_DIR }}"
