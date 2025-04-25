@@ -24,6 +24,29 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set repository name to lowercase
+        run: echo "REPO_LOWER=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      
+      - name: Check for changes in poller
+        id: check_poller
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -q "^poller/" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for changes in worker
+        id: check_worker
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -q "^worker/" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -35,13 +58,15 @@ jobs:
       # Использование metadata-action для Poller
       - name: Docker meta for Poller
         id: meta_poller
+        if: steps.check_poller.outputs.changed == 'true'
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/${{ github.repository }}/poller
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/poller
           tags: ${{ env.TAG_NAME }}
 
-      # Сборка и публикация образа poller
+      # Сборка и публикация образа poller только если были изменения
       - name: Build and push Poller image
+        if: steps.check_poller.outputs.changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./poller
@@ -51,13 +76,15 @@ jobs:
       # Использование metadata-action для Worker
       - name: Docker meta for Worker
         id: meta_worker
+        if: steps.check_worker.outputs.changed == 'true'
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/${{ github.repository }}/worker
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/worker
           tags: ${{ env.TAG_NAME }}
 
-      # Сборка и публикация образа worker
+      # Сборка и публикация образа worker только если были изменения
       - name: Build and push Worker image
+        if: steps.check_worker.outputs.changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./worker
@@ -71,6 +98,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set repository name to lowercase
+        run: echo "REPO_LOWER=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      
+      - name: Check for any changes in code
+        id: check_code_changes
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -E "^(poller|worker)/" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+          fi
       
       - name: Create .env file
         run: |
@@ -89,8 +130,8 @@ jobs:
       
       - name: Update docker-compose.yml
         run: |
-          sed -i 's|image: .*poller.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/poller:${DOCKER_TAG}|g' docker-compose.yaml
-          sed -i 's|image: .*worker.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/worker:${DOCKER_TAG}|g' docker-compose.yaml
+          sed -i "s|image: .*poller.*|image: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/poller:${{ env.TAG_NAME }}|g" docker-compose.yaml
+          sed -i "s|image: .*worker.*|image: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/worker:${{ env.TAG_NAME }}|g" docker-compose.yaml
       
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.8.0
@@ -98,6 +139,7 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       
       - name: Deploy to server
+        if: steps.check_code_changes.outputs.changed == 'true'
         run: |
           # Создаем директорию, если она не существует
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ secrets.SSH_TARGET_DIR }}"
@@ -107,8 +149,4 @@ jobs:
           scp -o StrictHostKeyChecking=no .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_TARGET_DIR }}/
           
           # Запускаем docker-compose
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            cd ${{ secrets.SSH_TARGET_DIR }}
-            docker-compose pull
-            docker-compose up -d
-          EOF
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.SSH_TARGET_DIR }} && docker-compose pull && docker-compose up -d"
