@@ -1,0 +1,13 @@
+server {
+    listen 80;
+    server_name _;
+    include /etc/nginx/mime.types;
+    sendfile on;
+    charset     utf8;
+    autoindex   off;
+
+    location / {
+        proxy_pass http://public_worker:8080;
+        proxy_set_header Host $host;
+    }
+}

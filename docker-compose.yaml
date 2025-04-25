@@ -40,6 +40,18 @@ services:
       retries: 3
       start_period: 30s
 
+  nginx:
+    build:
+      context: ./nginx
+    container_name: sgg_nginx
+    image: ghcr.io/${GITHUB_REPOSITORY}/nginx:${DOCKER_TAG}
+    restart: unless-stopped
+    ports:
+      - 80:80
+    depends_on:
+      public_worker:
+        condition: service_started
+
   poller:
     build:
       context: ./poller
@@ -67,8 +79,6 @@ services:
       "
     env_file:
       - .env
-    ports:
-     - 8081:8080
     depends_on:
       postgres:
         condition: service_healthy
