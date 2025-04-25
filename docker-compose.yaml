@@ -12,9 +12,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"] 
-      interval: 2s
-      timeout: 2s
-      retries: 6
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -35,9 +35,10 @@ services:
       "
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
-      interval: 2s
-      timeout: 2s
-      retries: 6
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   poller:
     build:
