@@ -138,6 +138,31 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       
+      - name: Create Docker config directory
+        if: steps.check_code_changes.outputs.changed == 'true'
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/.docker"
+
+      - name: Setup Docker authentication on server
+        if: steps.check_code_changes.outputs.changed == 'true'
+        run: |
+          # Создаем файл конфигурации Docker с авторизацией для GitHub Container Registry
+          cat > docker_config.json << EOF
+          {
+            "auths": {
+              "${REGISTRY}": {
+                "auth": "$(echo -n ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} | base64)"
+              }
+            }
+          }
+          EOF
+          
+          # Копируем файл конфигурации на сервер
+          scp -o StrictHostKeyChecking=no docker_config.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/.docker/config.json
+          
+          # Проверяем авторизацию
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker login ${REGISTRY} -u ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}"
+      
       - name: Deploy to server
         if: steps.check_code_changes.outputs.changed == 'true'
         run: |
