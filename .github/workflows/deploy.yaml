@@ -155,7 +155,10 @@ jobs:
           TG_BOT_TOKEN=${{ secrets.TG_BOT_TOKEN }}
           RABBITMQ_DEFAULT_USER=${{ secrets.RABBITMQ_DEFAULT_USER }}
           RABBITMQ_DEFAULT_PASS=${{ secrets.RABBITMQ_DEFAULT_PASS }}
-          RABBITMQ_HOST=rabbitmq
+          RABBITMQ_HOST=${{ secrets.RABBITMQ_HOST }}
+          GF_SECURITY_ADMIN_USER=${{ secrets.GF_SECURITY_ADMIN_USER }}
+          GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}
+          DATA_SOURCE_NAME=${{ secrets.DATA_SOURCE_NAME }}
           DOCKER_TAG=${{ env.TAG_NAME }}
           EOF
       

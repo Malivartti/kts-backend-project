@@ -38,19 +38,53 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 20s
 
   nginx:
     build:
       context: ./nginx
     container_name: sgg_nginx
     image: ghcr.io/${GITHUB_REPOSITORY}/nginx:${DOCKER_TAG}
-    restart: unless-stopped
+    restart: always
     ports:
       - 80:80
     depends_on:
       public_worker:
         condition: service_started
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+  
+  node-exporter:
+    image: prom/node-exporter:latest
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+
+  nginx-prometheus-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: nginx-prometheus-exporter
+    command: ["--nginx.scrape-uri=http://nginx/nginx_status"]
+    depends_on:
+      - nginx
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3002:3000
+    env_file:
+      - .env
+    volumes:
+      - grafana-storage:/var/lib/grafana
 
   poller:
     build:
@@ -79,8 +113,6 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    volumes:
-      - ./logs:/app/logs
 
   worker:
     build:
@@ -102,3 +134,4 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
+  grafana-storage:
