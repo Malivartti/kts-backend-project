@@ -16,7 +16,6 @@ server {
         allow 127.0.0.1;
         allow ::1;
         allow all;
-        deny all;
         access_log off;
     }
 }
