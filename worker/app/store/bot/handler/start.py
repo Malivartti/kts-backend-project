@@ -38,7 +38,7 @@ class StartHandler(BaseHandler):
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons])
 
-        text = "Добро пожаловать в игру 'Умники и умницы'!\n\n"
+        text = "Добро пожаловать в игру 'Умники и умницы'\n\n"
         text += (
             '"Умники и умницы" — это интеллектуальная игра-викторина для '
             "групповых чатов, основанная на одноименной "
