@@ -12,7 +12,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
   TAG_NAME: ${{ github.event.inputs.version || 'latest' }}
 
 jobs:
@@ -33,13 +32,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Использование metadata-action для Poller
+      - name: Docker meta for Poller
+        id: meta_poller
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository }}/poller
+          tags: ${{ env.TAG_NAME }}
+
       # Сборка и публикация образа poller
       - name: Build and push Poller image
         uses: docker/build-push-action@v5
         with:
           context: ./poller
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository }}/poller:${{ env.TAG_NAME }}
+          tags: ${{ steps.meta_poller.outputs.tags }}
+
+      # Использование metadata-action для Worker
+      - name: Docker meta for Worker
+        id: meta_worker
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository }}/worker
+          tags: ${{ env.TAG_NAME }}
 
       # Сборка и публикация образа worker
       - name: Build and push Worker image
@@ -47,7 +62,7 @@ jobs:
         with:
           context: ./worker
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository }}/worker:${{ env.TAG_NAME }}
+          tags: ${{ steps.meta_worker.outputs.tags }}
 
   deploy:
     needs: build-and-push
