@@ -52,8 +52,15 @@ services:
       public_worker:
         condition: service_started
 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/nginx_status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   prometheus:
     image: prom/prometheus
+    container_name: sgg_prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
@@ -61,9 +68,11 @@ services:
   
   node-exporter:
     image: prom/node-exporter:latest
+    container_name: sgg_node_exporter
 
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter
+    container_name: sgg_postgres_exporter
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,13 +81,15 @@ services:
 
   nginx-prometheus-exporter:
     image: nginx/nginx-prometheus-exporter:latest
-    container_name: nginx-prometheus-exporter
+    container_name: sgg_nginx_prometheus_exporter
     command: ["--nginx.scrape-uri=http://nginx/nginx_status"]
     depends_on:
-      - nginx
+      nginx:
+        condition: service_healthy
 
   grafana:
     image: grafana/grafana
+    container_name: sgg_grafana
     ports:
       - 3002:3000
     env_file:
