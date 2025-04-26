@@ -83,9 +83,8 @@ services:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: sgg_nginx_prometheus_exporter
     command: >
-      sh -c "
+      nginx-prometheus-exporter
       --nginx.scrape-uri=http://nginx/nginx_status
-      "
     depends_on:
       nginx:
         condition: service_healthy
