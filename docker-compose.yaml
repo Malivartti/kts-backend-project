@@ -43,7 +43,7 @@ services:
   nginx:
     build:
       context: ./nginx
-    container_name: sgg_nginx
+    # container_name: sgg_nginx
     image: ghcr.io/${GITHUB_REPOSITORY}/nginx:${DOCKER_TAG}
     restart: always
     ports:
@@ -82,8 +82,10 @@ services:
   nginx-prometheus-exporter:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: sgg_nginx_prometheus_exporter
-    command:
-      - --nginx.scrape-uri=http://nginx/nginx_status
+    command: >
+      sh -c "
+      --nginx.scrape-uri=http://nginx/nginx_status
+      "
     depends_on:
       nginx:
         condition: service_healthy
@@ -114,6 +116,7 @@ services:
   public_worker:
     build:
       context: ./worker
+    # image: sgg_worker
     image: ghcr.io/${GITHUB_REPOSITORY}/worker:${DOCKER_TAG}
     container_name: sgg_worker
     restart: always
