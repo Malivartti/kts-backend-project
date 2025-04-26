@@ -44,14 +44,13 @@ services:
     build:
       context: ./nginx
     container_name: sgg_nginx
-    image: ghcr.io/${GITHUB_REPOSITORY}/nginx:${DOCKER_TAG}
+    image: sgg_nginx
     restart: always
     ports:
       - 80:80
     depends_on:
       public_worker:
         condition: service_started
-
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/nginx_status"]
       interval: 10s
@@ -101,7 +100,7 @@ services:
   poller:
     build:
       context: ./poller
-    image: ghcr.io/${GITHUB_REPOSITORY}/poller:${DOCKER_TAG}
+    image: sgg_poller
     container_name: sgg_poller
     restart: always
     working_dir: /app
@@ -114,7 +113,7 @@ services:
   public_worker:
     build:
       context: ./worker
-    image: ghcr.io/${GITHUB_REPOSITORY}/worker:${DOCKER_TAG}
+    image: sgg_worker
     container_name: sgg_worker
     restart: always
     working_dir: /app
@@ -129,7 +128,7 @@ services:
   worker:
     build:
       context: ./worker
-    image: ghcr.io/${GITHUB_REPOSITORY}/worker:${DOCKER_TAG}
+    image: sgg_worker
     restart: always
     working_dir: /app
     env_file:
