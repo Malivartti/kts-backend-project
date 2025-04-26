@@ -65,7 +65,7 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - 9090:9090
-  
+
   node-exporter:
     image: prom/node-exporter:latest
     container_name: sgg_node_exporter
@@ -82,9 +82,8 @@ services:
   nginx-prometheus-exporter:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: sgg_nginx_prometheus_exporter
-    command: >
-      nginx-prometheus-exporter
-      --nginx.scrape-uri=http://nginx/nginx_status
+    environment:
+      - SCRAPE_URI=nginx.scrape-uri=http://nginx/nginx_status
     depends_on:
       nginx:
         condition: service_healthy
