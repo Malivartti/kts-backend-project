@@ -166,7 +166,7 @@ jobs:
         run: |
           sed -i "s|image: .*poller.*|image: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/poller:${{ env.TAG_NAME }}|g" docker-compose.yaml
           sed -i "s|image: .*worker.*|image: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/worker:${{ env.TAG_NAME }}|g" docker-compose.yaml
-          sed -i "s|image: .*nginx.*|image: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/nginx:${{ env.TAG_NAME }}|g" docker-compose.yaml
+          sed -i "/container_name: sgg_nginx/,/image:/ s|image: .*|image: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/nginx:${{ env.TAG_NAME }}|g" docker-compose.yaml
       
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.8.0

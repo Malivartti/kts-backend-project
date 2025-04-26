@@ -43,7 +43,8 @@ services:
   nginx:
     build:
       context: ./nginx
-    # container_name: sgg_nginx
+    container_name: sgg_nginx
+    # image: sgg_nginx
     image: ghcr.io/${GITHUB_REPOSITORY}/nginx:${DOCKER_TAG}
     restart: always
     ports:
@@ -83,7 +84,7 @@ services:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: sgg_nginx_prometheus_exporter
     environment:
-      - SCRAPE_URI=nginx.scrape-uri=http://nginx/nginx_status
+      - SCRAPE_URI=http://nginx/nginx_status
     depends_on:
       nginx:
         condition: service_healthy
@@ -101,6 +102,7 @@ services:
   poller:
     build:
       context: ./poller
+    # image: sgg_poller
     image: ghcr.io/${GITHUB_REPOSITORY}/poller:${DOCKER_TAG}
     container_name: sgg_poller
     restart: always
@@ -130,6 +132,7 @@ services:
   worker:
     build:
       context: ./worker
+    # image: sgg_worker
     image: ghcr.io/${GITHUB_REPOSITORY}/worker:${DOCKER_TAG}
     restart: always
     working_dir: /app
